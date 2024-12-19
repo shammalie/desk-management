@@ -1,9 +1,9 @@
+import Flow from "~/components/ui/react-flow/flow";
+
 export default async function Home() {
   return (
-    <main>
-      <div className="flex flex-col">
-        <span>test</span>
-      </div>
+    <main className="h-full w-full">
+      <Flow canEdit />
     </main>
   );
 }

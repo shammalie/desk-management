@@ -16,7 +16,7 @@ import {
 import { format } from "date-fns";
 import "@xyflow/react/dist/style.css";
 
-import Nodes, { initialNodes, nodeTypes, type CustomNodeType } from "./nodes";
+import Nodes, { nodeTypes, type CustomNodeType } from "./nodes";
 import { edgeTypes, type CustomEdgeType } from "./edges";
 import { Card } from "../common/card";
 import {
@@ -56,7 +56,7 @@ export default function Flow({ canEdit }: FlowProps) {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const [editMode, setEditMode] = useState(false);
   const [snapToGrid, setSnapToGrid] = useState(false);
-  const [nodes, setNodes, onNodesChange] = useNodesState<Node<CustomNodeType>>(initialNodes);
+  const [nodes, setNodes, onNodesChange] = useNodesState<CustomNodeType>([]);
   const [reactFlowInstance, setReactFlowInstance] =
     useState<ReactFlowInstance | null>(null); // Update the type
 
@@ -94,23 +94,23 @@ export default function Flow({ canEdit }: FlowProps) {
         y: event.clientY - reactFlowBounds.top,
       };
 
-      const newNode: Node<CustomNodeType> = {
-        id: getId(), // Use existing getId() function instead of undefined generateNodeId
+      const newNode = {
+        id: getId(),
         type,
         position,
-        data: nodeData
-      };
+        data: nodeData,
+      } as unknown as CustomNodeType
 
-      setNodes((nds: Array<Node<CustomNodeType>>) => nds.concat(newNode));
+      setNodes((nds) => nds.concat(newNode));
     },
     [reactFlowInstance],
   );
 
   return (
-    <div className="flex h-full w-full" ref={reactFlowWrapper}>
+    <div className="flex h-full w-full bg-muted/40 rounded" ref={reactFlowWrapper}>
       <ReactFlowProvider>
         <div className="flex w-full flex-col items-center gap-3">
-          <div className="absolute z-10 flex flex-col gap-2">
+          <div className="absolute z-10 flex flex-col gap-2 mt-2">
             <FlowControls
               canEdit={!!canEdit}
               editMode={editMode}
@@ -124,7 +124,7 @@ export default function Flow({ canEdit }: FlowProps) {
             )}
           </div>
           <div className="flex h-full w-full gap-2">
-            <ReactFlow<Node<CustomNodeType>, CustomEdgeType>
+            <ReactFlow<CustomNodeType, CustomEdgeType>
               nodes={nodes}
               nodeTypes={nodeTypes}
               onNodesChange={onNodesChange}
@@ -223,7 +223,7 @@ function FlowControls({ canEdit, editMode, setEditMode }: FlowControlsProps) {
   const { fitView } = useReactFlow<CustomNodeType, CustomEdgeType>();
   const [date, setDate] = useState<Date>(new Date());
   return (
-    <Card className={"flex flex-col items-center rounded-lg p-4"}>
+    <Card className="flex flex-col items-center rounded-lg p-4 bg-background/70 backdrop-blur-sm">
       <div className="flex items-center gap-3">
         <Button
           variant="ghost"

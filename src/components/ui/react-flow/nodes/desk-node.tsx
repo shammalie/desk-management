@@ -33,6 +33,7 @@ import { select } from "d3-selection";
 import { Popover, PopoverContent, PopoverTrigger } from "../../common/popover";
 import { Input } from "../../common/input";
 import { Label } from "../../common/label";
+import { RefreshCw } from "lucide-react";
 
 export type DeskNode = Node<CustomNodeType>;
 
@@ -109,10 +110,9 @@ function DeskNode({
               <div
                 ref={nodeRef}
                 className={cn(
-                  !draggable && "border-none",
-                  draggable && "border-dashed",
-                  dragging && "border-solid",
-                  "border bg-clip-contents-10 flex flex-col items-center gap-2 rounded border-primary p-2",
+                  draggable && "hover:ring-1 hover:border-dashed",
+                  dragging && "hover:border hover:border-solid",
+                  "box-content bg-clip-contents-10 flex flex-col items-center gap-2 rounded border-primary p-2",
                 )}
                 style={{
                   transform: `rotate(${rotationDeg ?? 0}deg)`,
@@ -121,13 +121,14 @@ function DeskNode({
                 <div
                   ref={rotateControlRef}
                   className={cn(
-                    "absolute -right-16 -top-16 flex h-14 w-14 items-center justify-center rounded-full border-2 border-primary bg-background shadow-md",
+                    "absolute -top-10 flex h-8 w-8 items-center justify-center rounded-full p-1 bg-background shadow-md",
                     "cursor-grab transition-colors hover:bg-primary/10 active:cursor-grabbing",
                     "touch-none select-none",
                     (!draggable || !selected) && "hidden",
                   )}
+                  style={{ transform: `rotate(${360 - (rotationDeg ?? 0)}deg)` }}
                 >
-                  <RotateCounterClockwiseIcon className="h-8 w-8 text-primary" />
+                  <RefreshCw className="h-8 w-8 text-primary" />
                 </div>
                 <PopoverTrigger asChild>
                   <div className="flex flex-col items-center gap-1">

@@ -5,12 +5,10 @@ import { Inter as FontSans } from "next/font/google";
 
 import { TRPCReactProvider } from "~/trpc/react";
 import { cn } from "~/lib/utils";
-import { DesktopVerticalNav } from "./_components/navigation";
-import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
-} from "~/components/ui/common/avatar";
+import { SidebarInset, SidebarProvider, SidebarTrigger } from "~/components/ui/common/sidebar";
+import { AppSidebar } from "~/components/ui/navigation/app-sidebar";
+import { Separator } from "@radix-ui/react-separator";
+import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbSeparator, BreadcrumbPage } from "~/components/ui/common/breadcrumb";
 
 const fontSans = FontSans({
   subsets: ["latin"],
@@ -32,23 +30,31 @@ export default function RootLayout({
         className={cn("antialised bg-muted/40 font-sans", fontSans.variable)}
       >
         <TRPCReactProvider>
-          <div className="flex max-h-screen min-h-screen flex-col">
-            <div className="flex-0 relative flex items-center justify-between border-b bg-background px-6 py-2">
-              <div className="py-4">
-                <span>Desk Booking app</span>
-              </div>
-              <Avatar>
-                <AvatarImage />
-                <AvatarFallback>NA</AvatarFallback>
-              </Avatar>
-            </div>
-            <div className="flex flex-1 overflow-y-hidden">
-              <div className="flex border-r bg-background p-4">
-                <DesktopVerticalNav />
-              </div>
+          <SidebarProvider>
+            <AppSidebar />
+            <SidebarInset>
+              <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
+                <div className="flex items-center gap-2 px-4">
+                  <SidebarTrigger className="-ml-1" />
+                  <Separator orientation="vertical" className="mr-2 h-4" />
+                  <Breadcrumb>
+                    <BreadcrumbList>
+                      <BreadcrumbItem className="hidden md:block">
+                        <BreadcrumbLink href="#">
+                          Building Your Application
+                        </BreadcrumbLink>
+                      </BreadcrumbItem>
+                      <BreadcrumbSeparator className="hidden md:block" />
+                      <BreadcrumbItem>
+                        <BreadcrumbPage>Data Fetching</BreadcrumbPage>
+                      </BreadcrumbItem>
+                    </BreadcrumbList>
+                  </Breadcrumb>
+                </div>
+              </header>
               <div className="flex grow rounded p-6">{children}</div>
-            </div>
-          </div>
+            </SidebarInset>
+          </SidebarProvider>
         </TRPCReactProvider>
       </body>
     </html>
