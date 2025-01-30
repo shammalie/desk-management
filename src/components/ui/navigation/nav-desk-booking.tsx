@@ -4,21 +4,14 @@ import { type LucideIcon } from "lucide-react"
 
 import {
   Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
 } from "~/components/ui/common/collapsible"
 import {
   SidebarGroup,
   SidebarGroupLabel,
   SidebarMenu,
-  SidebarMenuAction,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarMenuSub,
-  SidebarMenuSubButton,
-  SidebarMenuSubItem,
 } from "~/components/ui/common/sidebar"
-import { ChevronRightIcon } from "@radix-ui/react-icons"
 
 export function NavDeskBooking({
   items,

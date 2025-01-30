@@ -30,8 +30,9 @@ import { NavManagement } from "./nav-management."
 
 const data = {
   user: {
-    name: "shadcn",
-    email: "m@example.com",
+    firstName: "John",
+    lastName: "Doe",
+    email: "john-doe1337@example.com",
     avatar: "/avatars/shadcn.jpg",
   },
   navMain: [

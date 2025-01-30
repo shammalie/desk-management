@@ -45,7 +45,6 @@ function RoomNode({
   width,
   positionAbsoluteX,
   positionAbsoluteY,
-  selected,
 }: NodeProps<RoomNode>) {
   const [open, setOpen] = useState(false);
   const rotateControlRef = useRef(null);

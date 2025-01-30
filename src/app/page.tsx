@@ -1,4 +1,4 @@
-import Flow from "~/components/ui/react-flow/flow";
+import Flow from "~/components/ui/floor/flow";
 
 export default async function Home() {
   return (

@@ -28,7 +28,7 @@ import {
 } from "../../common/dialog";
 import { BookingStatus } from ".";
 import { type CustomNodeType } from "./types";
-import { drag } from "d3-drag";
+import { type D3DragEvent, drag } from "d3-drag";
 import { select } from "d3-selection";
 import { Popover, PopoverContent, PopoverTrigger } from "../../common/popover";
 import { Input } from "../../common/input";
@@ -60,34 +60,41 @@ function DeskNode({
     const selection = select<Element, unknown>(rotateControlRef.current);
     let startAngle = 0;
 
-    const dragHandler = drag<Element, unknown>()
-      .on("start", (event: any) => {
-        event.sourceEvent.stopPropagation();
-        const node = nodeRef.current!.getBoundingClientRect();
-        const centerX = node.left + node.width / 2;
-        const centerY = node.top + node.height / 2;
-        const x = event.sourceEvent.clientX;
-        const y = event.sourceEvent.clientY;
+    const snapToGrid = (angle: number) => {
+      const increment = 15;
+      return Math.round(angle / increment) * increment;
+    };
 
-        startAngle = Math.atan2(y - centerY, x - centerX);
+    const dragHandle = (
+      event: D3DragEvent<Element, unknown, unknown>,
+    ): number => {
+      const sourceEvent = event.sourceEvent as MouseEvent;
+      sourceEvent.stopPropagation();
+      const node = nodeRef.current!.getBoundingClientRect();
+      const centerX = node.left + node.width / 2;
+      const centerY = node.top + node.height / 2;
+      const x = sourceEvent.clientX;
+      const y = sourceEvent.clientY;
+
+      return Math.atan2(y - centerY, x - centerX);
+    };
+
+    const dragHandler = drag<Element, unknown, unknown>()
+      .on("start", (event: D3DragEvent<Element, unknown, unknown>) => {
+        startAngle = dragHandle(event);
       })
-      .on("drag", (event) => {
-        const node = nodeRef.current!.getBoundingClientRect();
-        const centerX = node.left + node.width / 2;
-        const centerY = node.top + node.height / 2;
-        const x = event.sourceEvent.clientX;
-        const y = event.sourceEvent.clientY;
-
-        const currentAngle = Math.atan2(y - centerY, x - centerX);
-        let deltaAngle = currentAngle - startAngle;
+      .on("drag", (event: D3DragEvent<Element, unknown, unknown>) => {
+        const currentAngle = dragHandle(event);
+        const deltaAngle = currentAngle - startAngle;
 
         // Convert radians to degrees and add to the current rotation
         let newRotation = (rotationDeg ?? 0) + (deltaAngle * 180) / Math.PI;
 
         // Normalize the degree to be between 0 and 360
         newRotation = ((newRotation % 360) + 360) % 360;
+        const snappedRotation = snapToGrid(newRotation);
 
-        setRotationDeg(newRotation);
+        setRotationDeg(snappedRotation);
         updateNodeInternals(id);
       });
 
@@ -110,9 +117,7 @@ function DeskNode({
               <div
                 ref={nodeRef}
                 className={cn(
-                  draggable && "hover:ring-1 hover:border-dashed",
-                  dragging && "hover:border hover:border-solid",
-                  "box-content bg-clip-contents-10 flex flex-col items-center gap-2 rounded border-primary p-2",
+                  "bg-clip-contents-10 box-content flex flex-col items-center gap-2 rounded border-primary p-2",
                 )}
                 style={{
                   transform: `rotate(${rotationDeg ?? 0}deg)`,
@@ -121,18 +126,18 @@ function DeskNode({
                 <div
                   ref={rotateControlRef}
                   className={cn(
-                    "absolute -top-10 flex h-8 w-8 items-center justify-center rounded-full p-1 bg-background shadow-md",
-                    "cursor-grab transition-colors hover:bg-primary/10 active:cursor-grabbing",
-                    "touch-none select-none",
+                    "absolute -top-12 flex h-10 w-10 cursor-grab touch-none select-none items-center justify-center rounded-full bg-background/30 p-2 backdrop-blur-sm transition-colors hover:bg-primary/15 active:cursor-grabbing",
                     (!draggable || !selected) && "hidden",
                   )}
-                  style={{ transform: `rotate(${360 - (rotationDeg ?? 0)}deg)` }}
+                  style={{
+                    transform: `rotate(${360 - (rotationDeg ?? 0)}deg)`,
+                  }}
                 >
                   <RefreshCw className="h-8 w-8 text-primary" />
                 </div>
                 <PopoverTrigger asChild>
                   <div className="flex flex-col items-center gap-1">
-                    <div className="flex flex-col items-center rounded-sm border-2 border-muted-foreground bg-background px-6 py-1 hover:bg-muted">
+                    <div className="flex flex-col items-center rounded-sm border-2 border-foreground/70 bg-background px-6 py-1 hover:bg-muted">
                       <div
                         style={{
                           transform: `rotate(${360 - (rotationDeg ?? 0)}deg)`,
@@ -147,7 +152,7 @@ function DeskNode({
                         )}
                       </div>
                     </div>
-                    <div className="h-2 w-12 rounded bg-muted-foreground" />
+                    <div className="absolute -bottom-1 h-2 w-12 rounded bg-foreground/70" />
                   </div>
                 </PopoverTrigger>
               </div>
@@ -155,48 +160,51 @@ function DeskNode({
             <PopoverContent
               side="bottom"
               sideOffset={30}
-              className="flex flex-col gap-4"
+              className="z-[9999] flex flex-col"
+              asChild
             >
-              <div className="grid grid-cols-3 items-center gap-4">
-                <Label className="text-nowrap">X Position</Label>
-                <Input
-                  value={positionAbsoluteX}
-                  className="col-span-2"
-                  readOnly
-                />
-              </div>
-              <div className="grid grid-cols-3 items-center gap-4">
-                <Label className="text-nowrap">Y Position</Label>
-                <Input
-                  value={positionAbsoluteY}
-                  className="col-span-2"
-                  readOnly
-                />
-              </div>
-              <div className="grid grid-cols-3 items-center gap-4">
-                <Label className="text-nowrap">Rotation</Label>
-                <Input
-                  value={rotationDeg}
-                  className="col-span-2"
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    if (value === "") {
-                      setRotationDeg(0);
-                    } else {
-                      const numValue = parseFloat(value);
-                      if (!isNaN(numValue)) {
-                        setRotationDeg(numValue % 360);
+              <div className="flex flex-col gap-4">
+                <div className="grid grid-cols-3 items-center gap-4">
+                  <Label className="text-nowrap">X Position</Label>
+                  <Input
+                    value={positionAbsoluteX}
+                    className="col-span-2"
+                    readOnly
+                  />
+                </div>
+                <div className="grid grid-cols-3 items-center gap-4">
+                  <Label className="text-nowrap">Y Position</Label>
+                  <Input
+                    value={positionAbsoluteY}
+                    className="col-span-2"
+                    readOnly
+                  />
+                </div>
+                <div className="grid grid-cols-3 items-center gap-4">
+                  <Label className="text-nowrap">Rotation</Label>
+                  <Input
+                    value={rotationDeg}
+                    className="col-span-2"
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      if (value === "") {
+                        setRotationDeg(0);
+                      } else {
+                        const numValue = parseFloat(value);
+                        if (!isNaN(numValue)) {
+                          setRotationDeg(numValue % 360);
+                        }
                       }
-                    }
-                    updateNodeInternals(id);
-                  }}
-                />
+                      updateNodeInternals(id);
+                    }}
+                  />
+                </div>
               </div>
             </PopoverContent>
             <HoverCardContent
               hidden={draggable}
               side="top"
-              className="z-50 w-fit p-4"
+              className="w-fit p-4"
             >
               <div className="flex justify-center">{status}</div>
             </HoverCardContent>

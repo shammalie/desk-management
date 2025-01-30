@@ -1,9 +1,8 @@
-import type { BuiltInNode, Node, NodeTypes } from "@xyflow/react";
+import type { BuiltInNode, NodeTypes } from "@xyflow/react";
 
 import DeskNode, { type DeskNode as DeskNodeType } from "./desk-node";
 import RoomNode, { type RoomNode as RoomNodeType } from "./room-node";
 import { BookingStatus, NodeType } from "./types";
-import { v4 as uuid } from 'uuid';
 
 export const nodeTypes = {
   desk: DeskNode,
@@ -13,7 +12,7 @@ export const nodeTypes = {
 
 const Nodes: { [key in NodeType]: CustomNodeType } = {
   [NodeType.Desk]: {
-    id: uuid(),
+    id: "",
     position: {
       x: 0,
       y: 0,
@@ -21,24 +20,26 @@ const Nodes: { [key in NodeType]: CustomNodeType } = {
     data: {
       key: NodeType.Desk,
       status: BookingStatus.AVAILABLE,
-      label: 'Desk',
-      name: '',
-      rotationSnap: false
-    }
+      label: "",
+      name: "",
+      rotationSnap: false,
+    },
   },
   [NodeType.Room]: {
-    id: uuid(),
+    id: "",
     position: {
       x: 0,
       y: 0,
     },
+    width: 200,
+    height: 120,
     data: {
-      key: NodeType.Desk,
+      key: NodeType.Room,
       status: BookingStatus.AVAILABLE,
-      label: 'Room',
-      name: '',
-      rotationSnap: false
-    }
+      label: "",
+      name: "",
+      rotationSnap: false,
+    },
   },
 };
 
