@@ -30,9 +30,11 @@ import { BookingStatus } from ".";
 import { Label } from "../../common/label";
 import { Popover, PopoverContent, PopoverTrigger } from "../../common/popover";
 import { Input } from "../../common/input";
-import { drag } from "d3-drag";
+import { type D3DragEvent, drag } from "d3-drag";
 import { select } from "d3-selection";
 import { type CustomNodeType } from "./types";
+import { dragHandle, onDragHandle } from "./utils";
+import { RefreshCw } from "lucide-react";
 
 export type RoomNode = Node<CustomNodeType>;
 
@@ -45,32 +47,44 @@ function RoomNode({
   width,
   positionAbsoluteX,
   positionAbsoluteY,
+  selected,
 }: NodeProps<RoomNode>) {
   const [open, setOpen] = useState(false);
   const rotateControlRef = useRef(null);
   const updateNodeInternals = useUpdateNodeInternals();
   const [rotationDeg, setRotationDeg] = useState(rotation);
+  const nodeRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!rotateControlRef.current) {
+    if (!rotateControlRef.current || !nodeRef.current) {
       return;
     }
 
     const selection = select<Element, unknown>(rotateControlRef.current);
-    const dragHandler = drag().on(
-      "drag",
-      ({ x, y }: { x: number; y: number }) => {
-        const dx = x - 100;
-        const dy = y - 100;
-        const rad = Math.atan2(dx, dy);
-        const deg = rad * (180 / Math.PI);
-        setRotationDeg(180 - deg);
+    let startAngle = 0;
+
+    const dragHandler = drag<Element, unknown, unknown>()
+      .on("start", (event: D3DragEvent<Element, unknown, unknown>) => {
+        startAngle = dragHandle(event, nodeRef);
+      })
+      .on("drag", (event: D3DragEvent<Element, unknown, unknown>) => {
+        const snappedRotation = onDragHandle(
+          event,
+          nodeRef,
+          startAngle,
+          rotationDeg,
+        );
+
+        setRotationDeg(snappedRotation);
         updateNodeInternals(id);
-      },
-    );
+      });
 
     selection.call(dragHandler);
-  }, [id, updateNodeInternals]);
+
+    return () => {
+      selection.on(".drag", null);
+    };
+  }, [id, updateNodeInternals, rotationDeg]);
 
   return (
     <Dialog
@@ -82,6 +96,7 @@ function RoomNode({
           <HoverCard>
             <HoverCardTrigger>
               <div
+                ref={nodeRef}
                 className={cn(
                   dragging && "border",
                   `flex flex-col items-center gap-2 rounded bg-clip-content p-2`,
@@ -100,14 +115,19 @@ function RoomNode({
                 <div
                   ref={rotateControlRef}
                   className={cn(
-                    !draggable && "hidden",
-                    "absolute top-[-30px] h-4 w-4 rounded-full bg-primary",
+                    "absolute -top-12 flex h-10 w-10 cursor-grab touch-none select-none items-center justify-center rounded-full bg-background/30 p-2 backdrop-blur-sm transition-colors hover:bg-primary/15 active:cursor-grabbing",
+                    (!draggable || !selected) && "hidden",
                   )}
-                />
+                  style={{
+                    transform: `rotate(${360 - (rotationDeg ?? 0)}deg)`,
+                  }}
+                >
+                  <RefreshCw className="h-8 w-8 text-primary" />
+                </div>
                 <PopoverTrigger asChild>
                   <div
                     className={
-                      "flex h-full w-full origin-center items-center justify-center border-2 border-muted-foreground bg-muted"
+                      "flex h-full w-full origin-center items-center justify-center border-2 border-muted-foreground bg-background"
                     }
                   >
                     <div
