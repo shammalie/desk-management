@@ -1,6 +1,6 @@
-"use client"
+"use client";
 
-import * as React from "react"
+import * as React from "react";
 import {
   BookOpen,
   Building2,
@@ -11,11 +11,11 @@ import {
   Navigation,
   Send,
   Users,
-} from "lucide-react"
+} from "lucide-react";
 
-import { NavMain } from "~/components/ui/navigation/nav-main"
-import { NavSecondary } from "~/components/ui/navigation/nav-secondary"
-import { NavUser } from "~/components/ui/navigation/nav-user"
+import { NavMain } from "~/components/ui/navigation/nav-main";
+import { NavSecondary } from "~/components/ui/navigation/nav-secondary";
+import { NavUser } from "~/components/ui/navigation/nav-user";
 import {
   Sidebar,
   SidebarContent,
@@ -24,9 +24,9 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-} from "~/components/ui/common/sidebar"
-import { NavDeskBooking } from "./nav-desk-booking"
-import { NavManagement } from "./nav-management."
+} from "~/components/ui/common/sidebar";
+import { NavDeskBooking } from "./nav-desk-booking";
+import { NavManagement } from "./nav-management.";
 
 const data = {
   user: {
@@ -39,31 +39,31 @@ const data = {
     {
       title: "Home",
       url: "#",
-      icon: House
+      icon: House,
     },
   ],
   navDeskBooking: [
     {
       title: "Locations",
-      url: "#",
-      icon: Navigation
+      url: "/locations",
+      icon: Navigation,
     },
     {
       title: "My Bookings",
       url: "#",
-      icon: BookOpen
+      icon: BookOpen,
     },
   ],
   navManagement: [
     {
       title: "Sites",
       url: "#",
-      icon: Building2
+      icon: Building2,
     },
     {
       title: "Teams",
       url: "#",
-      icon: Users
+      icon: Users,
     },
   ],
   navSecondary: [
@@ -86,11 +86,11 @@ const data = {
       isHidden: true,
     },
   ],
-}
+};
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
-    <Sidebar variant="inset" {...props}>
+    <Sidebar variant="floating" collapsible="none" {...props}>
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
@@ -100,7 +100,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                   <MonitorCheck className="size-4" />
                 </div>
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-semibold">Desk Management</span>
+                  <span className="truncate font-semibold">
+                    Desk Management
+                  </span>
                   <span className="truncate text-xs">Enterprise</span>
                 </div>
               </a>
@@ -118,5 +120,5 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <NavUser user={data.user} />
       </SidebarFooter>
     </Sidebar>
-  )
+  );
 }
