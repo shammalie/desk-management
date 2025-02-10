@@ -49,8 +49,8 @@ const data = {
       icon: Navigation,
     },
     {
-      title: "My Bookings",
-      url: "#",
+      title: "Table",
+      url: "/table",
       icon: BookOpen,
     },
   ],
