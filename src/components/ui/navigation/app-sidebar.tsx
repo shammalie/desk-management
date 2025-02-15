@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import {
+  Book,
   BookOpen,
   Building2,
   Cog,
@@ -10,6 +11,8 @@ import {
   MonitorCheck,
   Navigation,
   Send,
+  Table,
+  TriangleAlert,
   Users,
 } from "lucide-react";
 
@@ -51,7 +54,12 @@ const data = {
     {
       title: "Table",
       url: "/table",
-      icon: BookOpen,
+      icon: Table,
+    },
+    {
+      title: "Table With Validation",
+      url: "/table-with-validation",
+      icon: TriangleAlert,
     },
   ],
   navManagement: [
