@@ -13,7 +13,7 @@ import {
   type SortingState,
 } from "@tanstack/react-table";
 import { Button } from "~/components/ui/common/button";
-import { ChevronRight, ArrowUpDown, ChevronsLeftRight, ChevronsRightLeft, ChevronsDownUp, ChevronsUpDown, X } from "lucide-react";
+import { ChevronRight, X } from "lucide-react";
 import { faker } from "@faker-js/faker";
 import {
   Table,
@@ -47,7 +47,12 @@ type Case = {
 function makeData(caseCount: number, cardCount: number): Array<Case> {
   return Array.from({ length: caseCount }).map(() => ({
     name: faker.string.ulid(),
-    status: faker.helpers.arrayElement(["active", "inactive", "unknown", "error"]),
+    status: faker.helpers.arrayElement([
+      "active",
+      "inactive",
+      "unknown",
+      "error",
+    ]),
     taskId: faker.string.alphanumeric({ length: 6 }),
     cards: Array.from({ length: cardCount }).map(() => ({
       name: faker.string.alpha({ length: 10 }),
@@ -62,7 +67,7 @@ function makeData(caseCount: number, cardCount: number): Array<Case> {
 export function CustomTable() {
   const rerender = React.useReducer(() => ({}), {})[1];
 
-  const [globalFilter, setGlobalFilter] = React.useState('');
+  const [globalFilter, setGlobalFilter] = React.useState("");
   const [sorting, setSorting] = React.useState<SortingState>([]);
 
   const columns = React.useMemo<ColumnDef<Case>[]>(
@@ -79,7 +84,9 @@ export function CustomTable() {
             <ChevronRight
               className={cn(
                 "h-4 w-4 shrink-0 transition-transform",
-                column.getIsSorted() === "asc" ? "-rotate-90" : column.getIsSorted() === "desc" && "rotate-90"
+                column.getIsSorted() === "asc"
+                  ? "-rotate-90"
+                  : column.getIsSorted() === "desc" && "rotate-90",
               )}
             />
           </Button>
@@ -92,14 +99,16 @@ export function CustomTable() {
             }}
           >
             {row.getCanExpand() && (
-              <Button size='icon' variant='ghost'>
+              <Button size="icon" variant="ghost">
                 <ChevronRight
                   className={cn(
                     "h-4 w-4 shrink-0 transition-transform",
-                    row.getIsExpanded() && "rotate-90"
+                    row.getIsExpanded() && "rotate-90",
                   )}
                 />
-                <span className="sr-only">{row.getIsExpanded() ? 'collapse row' : 'expand row'}</span>
+                <span className="sr-only">
+                  {row.getIsExpanded() ? "collapse row" : "expand row"}
+                </span>
               </Button>
             )}
             <span>{getValue<string>()}</span>
@@ -107,7 +116,7 @@ export function CustomTable() {
         ),
       },
       {
-        accessorKey: 'status',
+        accessorKey: "status",
         header: ({ column }) => (
           <Button
             variant="ghost"
@@ -117,7 +126,9 @@ export function CustomTable() {
             <ChevronRight
               className={cn(
                 "h-4 w-4 shrink-0 transition-transform",
-                column.getIsSorted() === "asc" ? "-rotate-90" : column.getIsSorted() === "desc" && "rotate-90"
+                column.getIsSorted() === "asc"
+                  ? "-rotate-90"
+                  : column.getIsSorted() === "desc" && "rotate-90",
               )}
             />
           </Button>
@@ -125,15 +136,24 @@ export function CustomTable() {
         cell: ({ getValue }) => {
           const status = getValue<CaseStatus>();
           return (
-            <Badge variant={status === 'error' ? 'destructive' : status === 'active' ? 'default' : status === 'inactive' ? 'secondary' : 'outline'}>
+            <Badge
+              variant={
+                status === "error"
+                  ? "destructive"
+                  : status === "active"
+                    ? "default"
+                    : status === "inactive"
+                      ? "secondary"
+                      : "outline"
+              }
+            >
               {status.toUpperCase()}
-
             </Badge>
-          )
+          );
         },
       },
       {
-        accessorKey: 'taskId',
+        accessorKey: "taskId",
         header: ({ column }) => (
           <Button
             variant="ghost"
@@ -143,14 +163,14 @@ export function CustomTable() {
             <ChevronRight
               className={cn(
                 "h-4 w-4 shrink-0 transition-transform",
-                column.getIsSorted() === "asc" ? "-rotate-90" : column.getIsSorted() === "desc" && "rotate-90"
+                column.getIsSorted() === "asc"
+                  ? "-rotate-90"
+                  : column.getIsSorted() === "desc" && "rotate-90",
               )}
             />
           </Button>
         ),
-        cell: ({ getValue }) => (
-          <span>{getValue<string>()}</span>
-        ),
+        cell: ({ getValue }) => <span>{getValue<string>()}</span>,
       },
     ],
     [],
@@ -159,20 +179,27 @@ export function CustomTable() {
   const [data, setData] = React.useState(() => makeData(10, 10));
   const [expanded, setExpanded] = React.useState<ExpandedState>({});
 
-  const hasMatchInChildren = React.useCallback((row: Case, filter: string): boolean => {
-    const searchStr = filter.toLowerCase();
-    const { name, status, taskId, cards } = row;
-    if (
-      name.toLowerCase().includes(searchStr) ??
-      status?.toLowerCase().includes(searchStr) ??
-      taskId?.toLowerCase().includes(searchStr)
-    ) return true;
+  const hasMatchInChildren = React.useCallback(
+    (row: Case, filter: string): boolean => {
+      const searchStr = filter.toLowerCase();
+      const { name, status, taskId, cards } = row;
+      if (
+        name.toLowerCase().includes(searchStr) ??
+        status?.toLowerCase().includes(searchStr) ??
+        taskId?.toLowerCase().includes(searchStr)
+      )
+        return true;
 
-    return !!cards?.some(card =>
-      card.name.toLowerCase().includes(searchStr) ||
-      card.availbility?.some(a => a.status.toLowerCase().includes(searchStr))
-    );
-  }, []);
+      return !!cards?.some(
+        (card) =>
+          card.name.toLowerCase().includes(searchStr) ||
+          card.availbility?.some((a) =>
+            a.status.toLowerCase().includes(searchStr),
+          ),
+      );
+    },
+    [],
+  );
 
   const table = useReactTable({
     data,
@@ -205,8 +232,11 @@ export function CustomTable() {
   React.useEffect(() => {
     if (globalFilter) {
       const newExpanded: ExpandedState = {};
-      table.getRowModel().rows.forEach(row => {
-        if (row.getCanExpand() && hasMatchInChildren(row.original, globalFilter)) {
+      table.getRowModel().rows.forEach((row) => {
+        if (
+          row.getCanExpand() &&
+          hasMatchInChildren(row.original, globalFilter)
+        ) {
           newExpanded[row.id] = true;
         }
       });
@@ -216,7 +246,7 @@ export function CustomTable() {
 
   return (
     <div className="rounded-md border">
-      <div className="flex items-center justify-between p-2 gap-2">
+      <div className="flex items-center justify-between gap-2 p-2">
         <Button
           variant="outline"
           size="sm"
@@ -227,20 +257,25 @@ export function CustomTable() {
           <ChevronRight
             className={cn(
               "h-4 w-4 shrink-0 transition-transform",
-              table.getIsAllRowsExpanded() && "rotate-90"
+              table.getIsAllRowsExpanded() && "rotate-90",
             )}
           />
-          {table.getIsAllRowsExpanded() ? 'Collapse All' : 'Expand All'}
+          {table.getIsAllRowsExpanded() ? "Collapse All" : "Expand All"}
         </Button>
         <div className="flex gap-1">
-          <Button size='icon' variant='outline' onClick={() => setGlobalFilter("")} disabled={globalFilter.length === 0}>
+          <Button
+            size="icon"
+            variant="outline"
+            onClick={() => setGlobalFilter("")}
+            disabled={globalFilter.length === 0}
+          >
             <X />
             <span className="sr-only">clear filter</span>
           </Button>
           <Input
             placeholder="Search all columns..."
-            value={globalFilter ?? ''}
-            onChange={e => setGlobalFilter(e.target.value)}
+            value={globalFilter ?? ""}
+            onChange={(e) => setGlobalFilter(e.target.value)}
             className="max-w-sm"
           />
         </div>
@@ -252,12 +287,12 @@ export function CustomTable() {
               {headerGroup.headers.map((header) => {
                 return (
                   <TableHead key={header.id} colSpan={header.colSpan}>
-                    {header.isPlaceholder ? null :
-                      flexRender(
-                        header.column.columnDef.header,
-                        header.getContext(),
-                      )
-                    }
+                    {header.isPlaceholder
+                      ? null
+                      : flexRender(
+                          header.column.columnDef.header,
+                          header.getContext(),
+                        )}
                   </TableHead>
                 );
               })}
@@ -274,9 +309,10 @@ export function CustomTable() {
                       className={cn(
                         row.getCanExpand() && "cursor-pointer",
                         row.index % 2 === 0 ? "bg-secondary" : "",
-                        globalFilter && hasMatchInChildren(row.original, globalFilter)
+                        globalFilter &&
+                          hasMatchInChildren(row.original, globalFilter)
                           ? "bg-primary/20 hover:bg-primary/30 dark:bg-primary/30 dark:hover:bg-primary/40"
-                          : ""
+                          : "",
                       )}
                       onClick={() => {
                         if (row.getCanExpand()) {
@@ -310,25 +346,36 @@ export function CustomTable() {
                                     key={idx}
                                     className={cn(
                                       idx % 2 === 0 ? "bg-secondary" : "",
-                                      globalFilter && card.name.toLowerCase().includes(globalFilter.toLowerCase())
+                                      globalFilter &&
+                                        card.name
+                                          .toLowerCase()
+                                          .includes(globalFilter.toLowerCase())
                                         ? "bg-primary/20 hover:bg-primary/30 dark:bg-primary/30 dark:hover:bg-primary/40"
                                         : "",
-                                      ""
+                                      "",
                                     )}
                                   >
                                     <TableCell>{card.name}</TableCell>
                                     <TableCell>
-                                      <div className="grid grid-cols-10 min-w-[100px] max-w-[380px] gap-1 select-none pointer">
-                                        {card.availbility?.map(({ status, hour }, index) => (
-                                          <Button
-                                            key={index}
-                                            size='sm'
-                                            variant={status === 'Red' ? 'destructive' : status === 'Amber' ? 'outline' : 'default'}
-                                            className="flex justify-center items-center"
-                                          >
-                                            {hour}
-                                          </Button>
-                                        ))}
+                                      <div className="pointer grid min-w-[100px] max-w-[380px] select-none grid-cols-10 gap-1">
+                                        {card.availbility?.map(
+                                          ({ status, hour }, index) => (
+                                            <Button
+                                              key={index}
+                                              size="sm"
+                                              variant={
+                                                status === "Red"
+                                                  ? "destructive"
+                                                  : status === "Amber"
+                                                    ? "outline"
+                                                    : "default"
+                                              }
+                                              className="flex items-center justify-center"
+                                            >
+                                              {hour}
+                                            </Button>
+                                          ),
+                                        )}
                                       </div>
                                     </TableCell>
                                   </TableRow>
@@ -345,10 +392,7 @@ export function CustomTable() {
             ))
           ) : (
             <TableRow className="hover:bg-transparent">
-              <TableCell
-                colSpan={columns.length}
-                className="h-24"
-              >
+              <TableCell colSpan={columns.length} className="h-24">
                 <div className="flex flex-col items-center justify-center gap-2">
                   <span>
                     {`No results found with search term "${globalFilter}".`}
@@ -366,6 +410,6 @@ export function CustomTable() {
           )}
         </TableBody>
       </Table>
-    </div >
+    </div>
   );
 }

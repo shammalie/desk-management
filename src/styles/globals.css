@@ -112,3 +112,25 @@
     --xy-selection-background-color: hsl(var(--accent) / 0.4);
   }
 }
+
+@keyframes pulse-border {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 0 hsl(var(--primary) / 0.8),
+      0 0 8px 4px hsl(var(--primary) / 0.3);
+    border-color: hsl(var(--primary)) !important;
+  }
+  50% {
+    box-shadow:
+      0 0 0 12px hsl(var(--primary) / 0.2),
+      0 0 16px 8px hsl(var(--primary) / 0.4);
+    border-color: hsl(var(--primary)) !important;
+  }
+}
+
+.pulse-border {
+  animation: pulse-border 1.2s infinite;
+  border-color: hsl(var(--primary)) !important;
+  z-index: 2;
+}

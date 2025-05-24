@@ -55,14 +55,15 @@ model Session {
 }
 
 model User {
-    id            String    @id @default(cuid())
-    name          String?
-    email         String?   @unique
-    emailVerified DateTime?
-    image         String?
-    accounts      Account[]
-    sessions      Session[]
-    posts         Post[]
+    id              String       @id @default(cuid())
+    name            String?
+    email           String?      @unique
+    emailVerified   DateTime?
+    image           String?
+    accounts        Account[]
+    sessions        Session[]
+    posts           Post[]
+    teamMemberships TeamMember[]
 }
 
 model VerificationToken {
@@ -101,4 +102,24 @@ model Desk {
     name   String
     roodId Int
     room   Room   @relation(fields: [roodId], references: [id], onDelete: Cascade)
+}
+
+model TeamMember {
+    id     Int    @id @default(autoincrement())
+    teamId Int
+    userId String
+    team   Team   @relation(fields: [id], references: [id], onDelete: Cascade)
+    user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Team {
+    id           Int      @id @default(autoincrement())
+    name         String   @unique
+    parentId     Int?     // Foreign key to parent team
+    parent       Team?    @relation("TeamHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+    children     Team[]   @relation("TeamHierarchy")
+    members      TeamMember[]
+
+    @@index([name])
+    @@index([parentId])
 }

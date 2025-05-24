@@ -8,7 +8,7 @@ const snapRotation = (angle: number) => {
 
 export const dragHandle = (
   event: D3DragEvent<Element, unknown, unknown>,
-  nodeRef: React.RefObject<HTMLDivElement>,
+  nodeRef: React.RefObject<HTMLDivElement | null>,
 ): number => {
   const sourceEvent = event.sourceEvent as MouseEvent;
   sourceEvent.stopPropagation();
@@ -23,7 +23,7 @@ export const dragHandle = (
 
 export const onDragHandle = (
   event: D3DragEvent<Element, unknown, unknown>,
-  nodeRef: React.RefObject<HTMLDivElement>,
+  nodeRef: React.RefObject<HTMLDivElement | null>,
   startAngle: number,
   rotationDeg?: number,
 ) => {

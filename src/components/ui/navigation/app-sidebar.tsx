@@ -41,7 +41,7 @@ const data = {
   navMain: [
     {
       title: "Home",
-      url: "#",
+      url: "/",
       icon: House,
     },
   ],
@@ -70,7 +70,7 @@ const data = {
     },
     {
       title: "Teams",
-      url: "#",
+      url: "/team-management",
       icon: Users,
     },
   ],
