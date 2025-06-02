@@ -14,14 +14,20 @@
     "postinstall": "prisma generate",
     "lint": "next lint",
     "start": "next start",
-    "db:seed": "tsx prisma/seed.ts"
+    "db:seed": "tsx prisma/seed.ts",
+    "test:integration": "vitest run test/integration --reporter=verbose --pool=forks --poolOptions.forks.singleFork=true",
+    "test:performance": "vitest run test/performance",
+    "test:watch": "vitest watch",
+    "test:coverage": "vitest run --coverage",
+    "prepare": "husky",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "@auth/prisma-adapter": "^1.6.0",
-    "@dagrejs/dagre": "^1.1.4",
     "@faker-js/faker": "^9.4.0",
     "@hookform/resolvers": "^3.9.0",
-    "@prisma/client": "^5.14.0",
+    "@prisma/client": "^5.16.2",
     "@radix-ui/react-accordion": "^1.2.0",
     "@radix-ui/react-alert-dialog": "^1.1.1",
     "@radix-ui/react-aspect-ratio": "^1.1.0",
@@ -61,10 +67,12 @@
     "@types/d3-selection": "^3.0.10",
     "@types/lodash.isequal": "^4.5.8",
     "@xyflow/react": "^12.0.1",
+    "better-auth": "^1.2.8",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
     "cmdk": "^1.0.0",
     "d3-drag": "^3.0.0",
+    "d3-hierarchy": "^3.1.2",
     "d3-selection": "^3.0.0",
     "dagre": "^0.8.5",
     "date-fns": "^3.6.0",
@@ -74,7 +82,6 @@
     "lodash.isequal": "^4.5.0",
     "lucide-react": "^0.407.0",
     "next": "15.1.8",
-    "next-auth": "^4.24.7",
     "next-themes": "^0.3.0",
     "react": "19.1.0",
     "react-day-picker": "^8.10.1",
@@ -93,23 +100,32 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
+    "@better-auth/cli": "^1.2.8",
+    "@types/d3-hierarchy": "^3.1.7",
     "@types/eslint": "^8.56.10",
     "@types/node": "^20.14.10",
     "@types/react": "19.1.5",
     "@types/react-dom": "19.1.5",
+    "@types/supertest": "^6.0.3",
     "@types/uuid": "^10.0.0",
     "@typescript-eslint/eslint-plugin": "^7.1.1",
     "@typescript-eslint/parser": "^7.1.1",
+    "@vitest/ui": "^3.2.0",
+    "dotenv": "^16.5.0",
     "eslint": "^8.57.0",
     "eslint-config-next": "15.1.8",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.1.0",
     "postcss": "^8.4.39",
     "prettier": "^3.3.2",
     "prettier-plugin-tailwindcss": "^0.6.5",
-    "prisma": "^5.14.0",
+    "prisma": "^5.16.2",
+    "supertest": "^7.1.1",
     "tailwindcss": "^3.4.3",
     "ts-node": "^10.9.2",
     "tsx": "^4.19.4",
-    "typescript": "^5.5.3"
+    "typescript": "^5.5.3",
+    "vitest": "^3.2.0"
   },
   "ct3aMetadata": {
     "initVersion": "7.36.1"
@@ -123,5 +139,15 @@
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
+  },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx}": [
+      "eslint --fix",
+      "prettier --write",
+      "bash -c 'tsc --noEmit'"
+    ],
+    "*.{json,md,css,scss,yaml,yml}": [
+      "prettier --write"
+    ]
   }
 }
