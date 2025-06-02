@@ -2,7 +2,7 @@
 /* eslint-disable react-hooks/rules-of-hooks */
 "use client";
 
-import React, { ChangeEvent } from "react";
+import React, { type ChangeEvent } from "react";
 
 //
 import {
@@ -36,6 +36,14 @@ declare module "@tanstack/react-table" {
       value: unknown,
       isValid: boolean,
     ) => void;
+    editedRows: Record<string, boolean>;
+    setEditedRows: React.Dispatch<
+      React.SetStateAction<Record<string, boolean>>
+    >;
+    validRows: Record<string, Record<string, boolean>>;
+    setValidRows: React.Dispatch<
+      React.SetStateAction<Record<string, Record<string, boolean>>>
+    >;
   }
   interface ColumnMeta<TData extends RowData, TValue> {
     required: boolean;
@@ -96,7 +104,7 @@ const defaultColumn: Partial<ColumnDef<Person>> = {
 
     return (
       <Input
-        className="invalid:[&:not(:placeholder-shown):not(:focus)]:border-red-500"
+        className="invalid:[&:not(:placeholder-shown):not(:focus)]:border-destructive"
         value={value as string}
         onChange={(e) => setValue(e.target.value)}
         onBlur={onBlur}
@@ -185,8 +193,12 @@ export function EditableTable() {
   const refreshData = () => setData(() => makeData(1000));
 
   const [autoResetPageIndex, skipAutoResetPageIndex] = useSkipper();
-  const [editedRows, setEditedRows] = React.useState({});
-  const [validRows, setValidRows] = React.useState({});
+  const [editedRows, setEditedRows] = React.useState<Record<string, boolean>>(
+    {},
+  );
+  const [validRows, setValidRows] = React.useState<
+    Record<number, Record<string, boolean>>
+  >({});
 
   const table = useReactTable({
     data,
@@ -218,7 +230,7 @@ export function EditableTable() {
         );
         setValidRows((old) => ({
           ...old,
-          [rowIndex]: { ...old[rowIndex], [columnId]: isValid },
+          [rowIndex]: { ...(old[rowIndex] ?? {}), [columnId]: isValid },
         }));
       },
     },
@@ -359,8 +371,8 @@ function Filter({
   column,
   table,
 }: {
-  column: Column<any, any>;
-  table: TSTable<any>;
+  column: Column<Person, unknown>;
+  table: TSTable<Person>;
 }) {
   const firstValue = table
     .getPreFilteredRowModel()

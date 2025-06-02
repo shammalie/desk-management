@@ -12,12 +12,12 @@ export const teamRouter = createTRPCRouter({
       return teamService.getTeamsWithRelations(input?.name);
     }),
   getTeamHierarchy: publicProcedure.query(async () => {
-    return teamService.getTeamHierarchy();
+    return teamService.getTeamHierarchyFast();
   }),
   getTeamFullHierarchy: publicProcedure
     .input(z.object({ name: z.string() }))
     .query(async ({ input }) => {
-      return teamService.getTeamFullHierarchy(input.name);
+      return teamService.getTeamFullHierarchyFast(input.name);
     }),
   getTeamsPaginated: publicProcedure
     .input(

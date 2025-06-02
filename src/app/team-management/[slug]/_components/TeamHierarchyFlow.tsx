@@ -1,248 +1,233 @@
-'use client';
-import { useMemo, useEffect, useState, useRef } from 'react';
-import { ReactFlow, ReactFlowProvider, type Node, type Edge, type NodeProps, Handle, Position, type EdgeProps, BaseEdge, useReactFlow, type ReactFlowInstance } from '@xyflow/react';
-import '@xyflow/react/dist/style.css';
-import type { TeamTree } from '~/server/schemas/team';
-import Dagre from '@dagrejs/dagre';
-import { useRouter, useSearchParams } from 'next/navigation';
+"use client";
+import { useMemo, useEffect, useState } from "react";
+import {
+  ReactFlow,
+  ReactFlowProvider,
+  type Node,
+  type Edge,
+  useReactFlow,
+} from "@xyflow/react";
+import "@xyflow/react/dist/style.css";
 
-interface TeamHierarchyFlowProps {
-    tree: TeamTree[];
-    highlightedTeamId?: string;
-}
+// Component imports
+import { TeamNode } from "./TeamNode";
+import { TeamEdge } from "./TeamEdge";
+import { AutoCenterOnNode } from "./AutoCenterOnNode";
 
-const nodeWidth = 180;
-const nodeHeight = 60;
+// Utility imports
+import { getLayoutedElements } from "./layoutUtils";
+import { flattenTree, buildTeamMap, getExpandedTeamIds } from "./teamUtils";
 
-function TeamNode({ data, id, selected, pulseNodeId, clickedNodeId }: NodeProps & { selected?: boolean; pulseNodeId?: string; clickedNodeId?: string }) {
-    let label = '';
-    if (typeof data === 'object' && data !== null && 'label' in data && typeof (data as { label: unknown }).label === 'string') {
-        label = (data as { label: string }).label;
-    }
-    const pulse = pulseNodeId && id === pulseNodeId && !clickedNodeId;
-    const clicked = clickedNodeId && id === clickedNodeId;
-    // Dynamic width based on label length, with a minimum
-    const minWidth = 180;
-    const padding = 32;
-    const approxCharWidth = 10;
-    const dynamicWidth = Math.max(minWidth, label.length * approxCharWidth + padding);
-    return (
-        <div
-            style={{ minWidth: minWidth, width: dynamicWidth }}
-            className={
-                `flex flex-col items-center justify-center h-full rounded-lg bg-card shadow-md p-2 relative border-2 ` +
-                (pulse ? 'border-primary animate-pulse ' : '') +
-                (!pulse && (selected ? 'pulse-border ring-2 ring-primary ring-offset-2 ' : '')) +
-                (clicked ? ' border-secondary ring-2 ring-secondary ' : '')
-            }
-        >
-            {/* Top handle (for parent connection) */}
-            <Handle
-                type="target"
-                position={Position.Top}
-                className="w-3 h-3 bg-primary border-2 border-background rounded-full absolute -top-2 left-1/2 -translate-x-1/2 z-10"
-                id={`${id}-target`}
-            />
-            <span className="text-base font-semibold text-foreground whitespace-nowrap">{label}</span>
-            {/* Bottom handle (for child connection) */}
-            <Handle
-                type="source"
-                position={Position.Bottom}
-                className="w-3 h-3 bg-primary border-2 border-background rounded-full absolute -bottom-2 left-1/2 -translate-x-1/2 z-10"
-                id={`${id}-source`}
-            />
-        </div>
-    );
-}
+// Type imports
+import type { TeamHierarchyFlowProps } from "./types";
+import { LAYOUT_CONFIG } from "./types";
 
-function TeamEdge(props: EdgeProps & { highlightedTeamIds?: string[] }) {
-    const { source, target, sourceX, sourceY, targetX, targetY, markerEnd, data } = props;
-    // If both source and target are highlighted, draw a straight line
-    const highlightedTeamIds = data?.highlightedTeamIds as string[] | undefined;
-    const bothHighlighted = highlightedTeamIds?.includes(source) && highlightedTeamIds?.includes(target);
-    const edgePath = bothHighlighted
-        ? `M${sourceX},${sourceY} L${targetX},${targetY}`
-        : `M${sourceX},${sourceY} C${sourceX},${(sourceY + targetY) / 2} ${targetX},${(sourceY + targetY) / 2} ${targetX},${targetY}`;
-    return (
-        <BaseEdge
-            path={edgePath}
-            style={{ stroke: 'hsl(var(--primary))', strokeWidth: 2 }}
-            markerEnd={markerEnd}
-        />
-    );
-}
-
+// Register custom node and edge types
 const nodeTypes = { team: TeamNode };
 const edgeTypes = { team: TeamEdge };
 
-// Helper component to handle auto-centering on highlighted node
-function AutoCenterOnNode({ highlightedTeamIds, nodes }: { highlightedTeamIds?: string[], nodes: Node[] }) {
-    const reactFlowInstance = useReactFlow();
-    useEffect(() => {
-        if (highlightedTeamIds && highlightedTeamIds.length > 0) {
-            const node = nodes.find(n => n.id === highlightedTeamIds[0]);
-            void (node?.position && reactFlowInstance.setCenter(
-                node.position.x + nodeWidth / 2,
-                node.position.y + nodeHeight / 2,
-                { zoom: 0.7, duration: 500 }
-            ));
-        } else {
-            // If filter is cleared, fit the whole view after a short delay
-            const timeout = setTimeout(() => {
-                void reactFlowInstance.fitView({ duration: 500, maxZoom: 0.5 });
-            }, 100);
-            return () => clearTimeout(timeout);
-        }
-    }, [highlightedTeamIds, nodes, reactFlowInstance]);
-    return null;
+/**
+ * Inner component that operates within ReactFlow context
+ *
+ * @description Handles the core logic of building and rendering the team hierarchy.
+ * Must be wrapped by ReactFlowProvider to access ReactFlow hooks and functionality.
+ *
+ * @param props - Component props containing tree data and highlighting information
+ * @returns JSX element representing the ReactFlow instance
+ */
+function TeamHierarchyFlowInner({
+  tree,
+  highlightedTeamId,
+}: TeamHierarchyFlowProps) {
+  const [isInitialized, setIsInitialized] = useState(false);
+  const reactFlowInstance = useReactFlow();
+
+  // Flatten hierarchical tree data into a list for processing
+  const teams = useMemo(() => (tree ? flattenTree(tree) : []), [tree]);
+
+  // Create highlighted team IDs array
+  const highlightedTeamIds = useMemo(
+    () => (highlightedTeamId ? [highlightedTeamId] : []),
+    [highlightedTeamId],
+  );
+
+  // Build efficient lookup map for team data
+  const teamMap = useMemo(() => buildTeamMap(teams), [teams]);
+
+  // Determine which teams should be visible based on highlighting
+  const expandedTeamIds = useMemo(
+    () => getExpandedTeamIds(teams, highlightedTeamIds, teamMap),
+    [teams, highlightedTeamIds, teamMap],
+  );
+
+  /**
+   * Builds ReactFlow nodes and edges from team data
+   *
+   * @description Creates Node and Edge objects for ReactFlow from the filtered
+   * team data. Applies dynamic sizing and positioning through the layout engine.
+   *
+   * @returns Object containing positioned nodes and edges
+   */
+  const { nodes, edges } = useMemo(() => {
+    // Filter teams to only show expanded/visible ones
+    const visibleTeams = teams.filter((team) =>
+      expandedTeamIds.includes(String(team.id)),
+    );
+
+    // Build parent-child relationship maps for connection analysis
+    const parentChildMap = new Map<string, string[]>(); // parent -> children
+    const childParentMap = new Map<string, string>(); // child -> parent
+
+    visibleTeams.forEach((team) => {
+      const teamId = String(team.id);
+      const childIds = team.children
+        .filter((child) => expandedTeamIds.includes(String(child.id)))
+        .map((child) => String(child.id));
+
+      parentChildMap.set(teamId, childIds);
+
+      // Map children back to their parent
+      childIds.forEach((childId) => {
+        childParentMap.set(childId, teamId);
+      });
+    });
+
+    // Create ReactFlow nodes
+    const nodes: Node[] = visibleTeams.map((team) => {
+      const label = team.name;
+      const dynamicWidth = Math.max(
+        LAYOUT_CONFIG.MIN_WIDTH,
+        label.length * LAYOUT_CONFIG.APPROX_CHAR_WIDTH + LAYOUT_CONFIG.PADDING,
+      );
+
+      return {
+        id: String(team.id),
+        data: {
+          label: team.name,
+          highlightedTeamId: highlightedTeamId,
+        },
+        position: { x: 0, y: 0 }, // Will be set by layout algorithm
+        type: "team",
+        style: {
+          minWidth: LAYOUT_CONFIG.MIN_WIDTH,
+          width: dynamicWidth,
+          height: LAYOUT_CONFIG.NODE_HEIGHT,
+        },
+        selected: highlightedTeamIds?.includes(String(team.id)),
+      };
+    });
+
+    // Create ReactFlow edges from parent-child relationships
+    const edges: Edge[] = visibleTeams.flatMap((team) =>
+      team.children
+        .filter((child) => expandedTeamIds.includes(String(child.id)))
+        .map((child) => {
+          const sourceId = String(team.id);
+          const targetId = String(child.id);
+
+          // Check if this is a one-to-one connection
+          const sourceHasOneChild =
+            (parentChildMap.get(sourceId)?.length ?? 0) === 1;
+          const targetHasOneParent = childParentMap.get(targetId) === sourceId;
+          const isOneToOneConnection = sourceHasOneChild && targetHasOneParent;
+
+          return {
+            id: `${team.id}->${child.id}`,
+            source: sourceId,
+            target: targetId,
+            animated: true,
+            type: "team",
+            data: {
+              highlightedTeamIds,
+              isOneToOneConnection,
+            },
+          } as Edge;
+        }),
+    );
+
+    // Apply layout algorithm to position nodes
+    return getLayoutedElements(nodes, edges);
+  }, [teams, highlightedTeamId, highlightedTeamIds, expandedTeamIds]);
+
+  /**
+   * Handles auto-centering when component initializes
+   *
+   * @description Centers viewport on highlighted nodes or fits entire view
+   * when no highlighting is active. Only runs after ReactFlow is initialized.
+   */
+  useEffect(() => {
+    if (
+      reactFlowInstance &&
+      isInitialized &&
+      (!highlightedTeamIds || highlightedTeamIds.length === 0) &&
+      nodes.length > 0
+    ) {
+      // Delay to ensure layout is ready
+      void setTimeout(() => {
+        void reactFlowInstance.fitView({ duration: 500, maxZoom: 0.5 });
+      }, 100);
+    }
+  }, [highlightedTeamIds, nodes, isInitialized, reactFlowInstance]);
+
+  /**
+   * Handles ReactFlow initialization
+   */
+  const handleInit = () => {
+    setIsInitialized(true);
+  };
+
+  return (
+    <ReactFlow
+      nodes={nodes}
+      edges={edges}
+      nodeTypes={nodeTypes}
+      edgeTypes={edgeTypes}
+      fitView
+      fitViewOptions={{ maxZoom: 0.5 }}
+      minZoom={0.1}
+      maxZoom={2}
+      proOptions={{ hideAttribution: true }}
+      nodesDraggable={false}
+      nodesConnectable={false}
+      elementsSelectable={false}
+      selectNodesOnDrag={false}
+      onInit={handleInit}
+    >
+      <AutoCenterOnNode highlightedTeamIds={highlightedTeamIds} nodes={nodes} />
+    </ReactFlow>
+  );
 }
 
-export default function TeamHierarchyFlow({ tree, highlightedTeamId }: TeamHierarchyFlowProps) {
-    const [clickedNodeId, setClickedNodeId] = useState<string | null>(null);
-    const reactFlowInstanceRef = useRef<ReactFlowInstance<Node, Edge> | null>(null);
-
-    // Flatten the tree into a list for React Flow
-    function flattenTree(tree: TeamTree[], acc: TeamTree[] = []): TeamTree[] {
-        for (const node of tree) {
-            acc.push(node);
-            if (node.children.length > 0) flattenTree(node.children, acc);
-        }
-        return acc;
-    }
-    const teams = useMemo(() => tree ? flattenTree(tree) : [], [tree]);
-
-    // Highlighted team IDs based on highlightedTeamId
-    const highlightedTeamIds = highlightedTeamId ? [highlightedTeamId] : [];
-
-    // Build a map for parent/child traversal
-    const teamMap = useMemo(() => {
-        const map = new Map<string, TeamTree>();
-        for (const t of teams) map.set(String(t.id), t);
-        return map;
-    }, [teams]);
-
-    // Recursively collect all parents
-    function collectParents(team: TeamTree, acc: Set<string>) {
-        if (team.parent && !acc.has(String(team.parent.id))) {
-            acc.add(String(team.parent.id));
-            const parent = teamMap.get(String(team.parent.id));
-            if (parent) collectParents(parent, acc);
-        }
-    }
-    // Recursively collect all children
-    function collectChildren(team: TeamTree, acc: Set<string>) {
-        for (const child of team.children) {
-            if (!acc.has(String(child.id))) {
-                acc.add(String(child.id));
-                const childTeam = teamMap.get(String(child.id));
-                if (childTeam) collectChildren(childTeam, acc);
-            }
-        }
-    }
-
-    // Build the set of all teams to show
-    const expandedTeamIds = useMemo(() => {
-        if (!highlightedTeamIds || highlightedTeamIds.length === 0) return teams.map(t => String(t.id));
-        const acc = new Set<string>();
-        for (const id of highlightedTeamIds) {
-            acc.add(id);
-            const team = teamMap.get(id);
-            if (team) {
-                collectParents(team, acc);
-                collectChildren(team, acc);
-            }
-        }
-        return Array.from(acc);
-    }, [highlightedTeamIds, teamMap, teams]);
-
-    // Build nodes and edges from teams
-    const { nodes, edges } = useMemo(() => {
-        const g = new Dagre.graphlib.Graph();
-        g.setDefaultEdgeLabel(() => ({}));
-        g.setGraph({ rankdir: 'TB' }); // Top to Bottom
-
-        // Only show expanded teams
-        const visibleTeams = teams.filter(team => expandedTeamIds.includes(String(team.id)));
-
-        // Create nodes
-        const nodes: Node[] = visibleTeams.map((team) => {
-            const label = team.name;
-            const minWidth = 180;
-            const padding = 32;
-            const approxCharWidth = 10;
-            const dynamicWidth = Math.max(minWidth, label.length * approxCharWidth + padding);
-            g.setNode(String(team.id), { width: dynamicWidth, height: nodeHeight });
-            return {
-                id: String(team.id),
-                data: { label: team.name, pulseNodeId: highlightedTeamId, clickedNodeId },
-                position: { x: 0, y: 0 }, // will be set by dagre
-                type: 'team',
-                style: { minWidth, width: dynamicWidth, height: nodeHeight },
-                selected: highlightedTeamIds?.includes(String(team.id)),
-            };
-        });
-
-        // Create edges
-        const edges: Edge[] = visibleTeams.flatMap((team) =>
-            team.children
-                .filter(child => expandedTeamIds.includes(String(child.id)))
-                .map((child) => {
-                    g.setEdge(String(team.id), String(child.id));
-                    return {
-                        id: `${team.id}->${child.id}`,
-                        source: String(team.id),
-                        target: String(child.id),
-                        animated: true,
-                        type: 'team',
-                        data: { highlightedTeamIds },
-                    } as Edge;
-                })
-        );
-
-        // Run dagre layout
-        Dagre.layout(g);
-        const layoutedNodes = nodes.map((node) => {
-            const pos = g.node(node.id);
-            return {
-                ...node,
-                position: { x: pos.x - nodeWidth / 2, y: pos.y - nodeHeight / 2 },
-            };
-        });
-
-        return { nodes: layoutedNodes, edges };
-    }, [teams, highlightedTeamId, clickedNodeId, highlightedTeamIds, expandedTeamIds]);
-
-    // Auto-center on load if no highlighted node
-    useEffect(() => {
-        if (reactFlowInstanceRef.current && (!highlightedTeamIds || highlightedTeamIds.length === 0) && nodes.length > 0) {
-            // Delay to ensure layout is ready
-            void setTimeout(() => {
-                void reactFlowInstanceRef.current?.fitView({ duration: 500, maxZoom: 0.5 });
-            }, 100);
-        }
-    }, [highlightedTeamIds, nodes]);
-
-    return (
-        <div className="w-full h-[500px] lg:h-full bg-background rounded mb-4">
-            <ReactFlowProvider>
-                <ReactFlow
-                    nodes={nodes}
-                    edges={edges}
-                    nodeTypes={nodeTypes}
-                    edgeTypes={edgeTypes}
-                    fitView
-                    fitViewOptions={{ maxZoom: 0.5 }}
-                    minZoom={0.1}
-                    maxZoom={2}
-                    proOptions={{ hideAttribution: true }}
-                    onNodeClick={(_, node) => {
-                        setClickedNodeId(node.id);
-                    }}
-                    onNodeDragStart={(_, node) => setClickedNodeId(node.id)}
-                    onInit={instance => { reactFlowInstanceRef.current = instance; }}
-                />
-                <AutoCenterOnNode highlightedTeamIds={highlightedTeamIds} nodes={nodes} />
-            </ReactFlowProvider>
-        </div>
-    );
-} 
+/**
+ * TeamHierarchyFlow - Main component for displaying team hierarchy as a flow chart
+ *
+ * @description Renders a hierarchical visualization of team structure using ReactFlow.
+ * Supports highlighting specific teams, dynamic node sizing, and interactive navigation.
+ * Uses a custom tree layout algorithm for optimal positioning of nodes.
+ *
+ * @param props - Component props containing team tree data and highlighting options
+ * @returns JSX element wrapped in ReactFlowProvider for context
+ *
+ * @example
+ * ```tsx
+ * <TeamHierarchyFlow
+ *   tree={teamTreeData}
+ *   highlightedTeamId="team-123"
+ * />
+ * ```
+ */
+export default function TeamHierarchyFlow({
+  tree,
+  highlightedTeamId,
+}: TeamHierarchyFlowProps) {
+  return (
+    <div className="mb-4 h-[500px] w-full rounded bg-background lg:h-full">
+      <ReactFlowProvider>
+        <TeamHierarchyFlowInner
+          tree={tree}
+          highlightedTeamId={highlightedTeamId}
+        />
+      </ReactFlowProvider>
+    </div>
+  );
+}

@@ -1,30 +1,32 @@
-import { db } from "../db";
+import { db } from "~/server/db";
 
-export async function getAllTeams() {
+/**
+ * Test-specific data access functions using Prisma ORM
+ * These functions operate on the same database but are designed for testing
+ */
+
+export async function getAllTeamsTest() {
   return db.team.findMany({
     include: {
       children: true,
       parent: true,
     },
+    orderBy: {
+      id: "asc",
+    },
   });
 }
 
-export async function getTeamCount() {
+export async function getTeamCountTest() {
   return db.team.count();
 }
 
 /**
  * Creates a materialized view for team hierarchy with metadata
- *
- * @description Creates a materialized view that includes:
- * - Team hierarchy paths
- * - Total descendant count for each team
- * - Depth level in the hierarchy
- * - Root team information
- *
- * @returns Promise<void>
  */
-export async function createTeamTreeMaterializedView() {
+export async function createTeamTreeMaterializedViewTest() {
+  // For now, we'll use a raw query for the materialized view creation
+  // since this is a complex database feature not directly supported by Prisma ORM
   await db.$executeRaw`
     CREATE MATERIALIZED VIEW IF NOT EXISTS team_tree_view AS
     WITH RECURSIVE team_hierarchy AS (
@@ -95,37 +97,22 @@ export async function createTeamTreeMaterializedView() {
 
 /**
  * Refreshes the team tree materialized view
- *
- * @description Refreshes the materialized view to reflect current data.
- * Should be called after team hierarchy changes.
- *
- * @returns Promise<void>
  */
-export async function refreshTeamTreeMaterializedView() {
+export async function refreshTeamTreeMaterializedViewTest() {
   await db.$executeRaw`REFRESH MATERIALIZED VIEW team_tree_view;`;
 }
 
 /**
  * Drops the team tree materialized view
- *
- * @description Removes the materialized view. Useful for cleanup or schema changes.
- *
- * @returns Promise<void>
  */
-export async function dropTeamTreeMaterializedView() {
+export async function dropTeamTreeMaterializedViewTest() {
   await db.$executeRaw`DROP MATERIALIZED VIEW IF EXISTS team_tree_view;`;
 }
 
 /**
  * Gets team hierarchy data from the materialized view
- *
- * @description Retrieves team tree data with metadata, ordered by descendant count.
- * The materialized view must be created first using createTeamTreeMaterializedView().
- *
- * @param limit - Optional limit for number of results
- * @returns Promise with team hierarchy data including metadata
  */
-export async function getTeamTreeFromMaterializedView(limit?: number) {
+export async function getTeamTreeFromMaterializedViewTest(limit?: number) {
   if (limit) {
     return db.$queryRaw`
       SELECT 
@@ -180,12 +167,8 @@ export async function getTeamTreeFromMaterializedView(limit?: number) {
 
 /**
  * Gets team tree statistics from the materialized view
- *
- * @description Provides aggregate statistics about the team hierarchy.
- *
- * @returns Promise with team tree statistics
  */
-export async function getTeamTreeStatistics() {
+export async function getTeamTreeStatisticsTest() {
   return db.$queryRaw`
     SELECT 
       COUNT(*) as total_teams,
@@ -203,13 +186,8 @@ export async function getTeamTreeStatistics() {
 
 /**
  * Checks if the team tree materialized view exists
- *
- * @description Checks whether the materialized view has been created.
- * Useful for conditional view management.
- *
- * @returns Promise<boolean> - True if the view exists, false otherwise
  */
-export async function teamTreeMaterializedViewExists(): Promise<boolean> {
+export async function teamTreeMaterializedViewExistsTest(): Promise<boolean> {
   try {
     const result = await db.$queryRaw`
       SELECT EXISTS (
